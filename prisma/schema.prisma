@@ -8,13 +8,17 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  fullName  String   @db.VarChar(100) 
-  email     String   @unique @db.VarChar(255)
-  password  String
-  role      Role
+  id       String @id @default(cuid())
+  fullName String @db.VarChar(100)
+  email    String @unique @db.VarChar(255)
+  password String
+  role     Role
 
-  isActive  Boolean  @default(true)
+  isActive Boolean @default(true)
+
+  doctorProfile DoctorProfile?
+  appointments  Appointment[]  @relation("PatientAppointments")
+  auditLogs     AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -24,4 +28,175 @@ enum Role {
   PATIENT
   DOCTOR
   ADMIN
+}
+
+model DoctorProfile {
+  id String @id @default(cuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  specialization    Specialization
+  licenseNumber     String         @unique
+  yearsOfExperience Int
+  consultationFee   Decimal        @db.Decimal(10, 2)
+
+  bio String?
+
+  availabilitySlots AvailabilitySlot[]
+  appointments      Appointment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Specialization {
+  GENERAL_PHYSICIAN
+  CARDIOLOGIST
+  DERMATOLOGIST
+  NEUROLOGIST
+  ORTHOPEDIC
+  PEDIATRICIAN
+  PSYCHIATRIST
+  GYNECOLOGIST
+}
+
+model AvailabilitySlot {
+  id String @id @default(cuid())
+
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  date      DateTime
+  startTime DateTime
+  endTime   DateTime
+
+  status      SlotStatus   @default(AVAILABLE)
+  appointment Appointment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+}
+
+model Appointment {
+  id String @id @default(cuid())
+
+  patientId String
+  patient   User   @relation("PatientAppointments", fields: [patientId], references: [id])
+
+  doctorId String
+  doctor   DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  slotId String           @unique
+  slot   AvailabilitySlot @relation(fields: [slotId], references: [id])
+
+  reason       String?
+  consultation Consultation?
+
+  status AppointmentStatus @default(PENDING)
+
+  bookedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  payment   Payment?
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model Consultation {
+  id String @id @default(cuid())
+
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  diagnosis String
+  notes     String?
+
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  prescription Prescription?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Prescription {
+  id String @id @default(cuid())
+
+  consultationId String       @unique
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+
+  medicines Medicine[]
+
+  instructions String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Medicine {
+  id String @id @default(cuid())
+
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+
+  medicineName String
+
+  dosage String
+
+  frequency String
+
+  duration String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  action String
+
+  entity String
+
+  entityId String
+
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id String @id @default(cuid())
+
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  amount Decimal @db.Decimal(10, 2)
+
+  status PaymentStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
 }

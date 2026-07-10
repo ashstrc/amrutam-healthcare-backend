@@ -45,6 +45,90 @@ class AuthService {
       token,
     };
   }
+
+  async login(loginData) {
+    const { email, password } = loginData;
+
+    // Find user
+    const user = await authRepository.findUserByEmail(email);
+
+    if (!user) {
+      throw new Error("Invalid email or password");
+    }
+
+    // Check account status
+    if (!user.isActive) {
+      throw new Error("Your account has been deactivated");
+    }
+
+    // Compare password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new Error("Invalid email or password");
+    }
+
+    // Generate JWT
+    const token = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    // Remove password
+    const { password: _, ...safeUser } = user;
+
+    return {
+      user: safeUser,
+      token,
+    };
+  }
+
+  async getProfile(userId) {
+    const user = await authRepository.findUserById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const { password, ...safeUser } = user;
+
+    return safeUser;
+  }
+
+  async changePassword(userId, currentPassword, newPassword) {
+    const user = await authRepository.findUserById(userId);
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordCorrect) {
+      throw new Error("Current password is incorrect");
+    }
+
+    if (currentPassword === newPassword) {
+      throw new Error("New password cannot be the same as current password");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await authRepository.updatePassword(userId, hashedPassword);
+
+    return {
+      message: "Password changed successfully",
+    };
+  }
 }
 
 export default new AuthService();

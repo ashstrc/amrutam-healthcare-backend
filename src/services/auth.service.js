@@ -1,6 +1,10 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import authRepository from "../repositories/auth.repository.js";
+import {
+  emitUserRegistered,
+  emitUserLoggedIn,
+} from "../events/emitters/auth.emitter.js";
 
 class AuthService {
   async register(userData) {
@@ -25,7 +29,6 @@ class AuthService {
     });
 
     // Generate JWT
-
     const token = jwt.sign(
       {
         id: user.id,
@@ -36,6 +39,11 @@ class AuthService {
         expiresIn: "7d",
       },
     );
+
+    // ✅ Create Audit Log
+    emitUserRegistered({
+      userId: user.id,
+    });
 
     // Remove password before returning
     const { password: _, ...safeUser } = user;
@@ -79,6 +87,11 @@ class AuthService {
         expiresIn: "7d",
       },
     );
+
+    // ✅ Create Audit Log
+    emitUserLoggedIn({
+      userId: user.id,
+    });
 
     // Remove password
     const { password: _, ...safeUser } = user;

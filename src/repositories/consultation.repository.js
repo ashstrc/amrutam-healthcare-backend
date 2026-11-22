@@ -26,6 +26,9 @@ class ConsultationRepository {
             },
           },
         },
+        prescription: {
+          include: { medicines: true },
+        },
       },
     });
   }

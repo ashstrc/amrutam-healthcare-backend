@@ -41,6 +41,14 @@ class AppointmentRepository {
           },
         },
         slot: true,
+        consultation: {
+          include: {
+            prescription: {
+              include: { medicines: true },
+            },
+          },
+        },
+        payment: true,
       },
     });
   }
@@ -68,6 +76,14 @@ class AppointmentRepository {
           },
         },
         slot: true,
+        consultation: {
+          include: {
+            prescription: {
+              include: { medicines: true },
+            },
+          },
+        },
+        payment: true,
       },
       orderBy: {
         bookedAt: "desc",
@@ -89,6 +105,14 @@ class AppointmentRepository {
           },
         },
         slot: true,
+        consultation: {
+          include: {
+            prescription: {
+              include: { medicines: true },
+            },
+          },
+        },
+        payment: true,
       },
       orderBy: {
         bookedAt: "desc",
